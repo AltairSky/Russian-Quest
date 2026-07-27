@@ -327,9 +327,14 @@
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
-   All text lives in  content.md  next to this index.html.
+   All text lives in markdown files sitting next to this index.html.
    Edit → commit → live. Never touch the HTML.
-   If content.md is missing, the FALLBACK below is shown.
+
+   THE MAIN PAGE lives in its own file:  main.md
+     Plain markdown, no special structure needed. Headings can be
+     # Heading or ## Heading — both render the same.
+     Load order for the main page:
+       main.md  →  the # main section of content.md  →  built-in demo.
 
    FORMAT
      # main                  ← the main page
@@ -485,6 +490,7 @@ function renderBlocks(lines) {
     if (!line.trim()) { flushPara(); flushList(); continue; }
     if (m) { flushPara(); flushList(); html += media(m[1], m[2]); continue; }
     if (line.startsWith("## ")) { flushPara(); flushList(); html += `<h2>${inline(line.slice(3))}</h2>`; continue; }
+    if (line.startsWith("# "))  { flushPara(); flushList(); html += `<h2>${inline(line.slice(2))}</h2>`; continue; }
     if (/^---+$/.test(line.trim())) { flushPara(); flushList(); html += "<hr>"; continue; }
     if (line.startsWith("- ")) { flushPara(); list.push(line.slice(2)); continue; }
     para.push(line);
@@ -525,7 +531,8 @@ const GITHUB_REPO = "";
 
 let SECTIONS = { main: [], blog: [] };
 let EXT_POSTS = null;                       /* posts loaded from posts/ files */
-let contentSource = "built-in fallback";
+let mainSource = "built-in demo";
+let blogSource = "built-in demo";
 let postsSource = "";
 
 function parseContent(text) {
@@ -546,15 +553,25 @@ function parseContent(text) {
     blog: out["blog"] || out["notebook"] || (keys[1] ? out[keys[1]] : [])
   };
 }
-async function loadContent() {
+async function fetchText(path) {
   try {
-    const res = await fetch("content.md", { cache: "no-store" });
-    if (res.ok) {
-      const text = await res.text();
-      if (text.trim()) { contentSource = "content.md"; return parseContent(text); }
-    }
-  } catch (e) { /* fall through */ }
-  return parseContent(FALLBACK);
+    const r = await fetch(path, { cache: "no-store" });
+    if (r.ok) { const t = await r.text(); if (t.trim()) return t; }
+  } catch (e) { /* not there */ }
+  return null;
+}
+async function loadContent() {
+  const mainMd = await fetchText("main.md");
+  const contentMd = await fetchText("content.md");
+  const parsed = contentMd ? parseContent(contentMd) : null;
+  const fb = parseContent(FALLBACK);
+
+  if (mainMd) { SECTIONS.main = mainMd.split(/\r?\n/); mainSource = "main.md"; }
+  else if (parsed && parsed.main.length) { SECTIONS.main = parsed.main; mainSource = "content.md"; }
+  else { SECTIONS.main = fb.main; }
+
+  if (parsed && parsed.blog.length) { SECTIONS.blog = parsed.blog; blogSource = "content.md"; }
+  else { SECTIONS.blog = fb.blog; }
 }
 async function loadExternalPosts() {
   let files = null;
@@ -581,7 +598,7 @@ async function loadExternalPosts() {
       }
     } catch (e) { /* fall through */ }
   }
-  if (!files || !files.length) { postsSource = contentSource; return null; }
+  if (!files || !files.length) { postsSource = blogSource; return null; }
   files.sort().reverse();                    /* date-prefixed names → newest first */
   const posts = await Promise.all(files.map(async name => {
     try {
@@ -806,7 +823,7 @@ function run(cmdRaw) {
     return;
   }
   if (cmd === "status") {
-    flash(`content: ${contentSource} · posts: ${postsSource || contentSource}${EXT_POSTS ? " (" + EXT_POSTS.length + " files)" : ""}`);
+    flash(`main: ${mainSource} · posts: ${postsSource || blogSource}${EXT_POSTS ? " (" + EXT_POSTS.length + " files)" : ""}`);
     return;
   }
   if (cmd === "clear") { pageEl.innerHTML = ""; flash(""); return; }
@@ -822,7 +839,7 @@ inputEl.addEventListener("keydown", e => {
 
 /* boot */
 (async () => {
-  SECTIONS = await loadContent();
+  await loadContent();
   EXT_POSTS = await loadExternalPosts();
   await wait(reduced ? 0 : 450);
   await showPage("main");
