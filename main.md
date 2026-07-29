@@ -18,7 +18,7 @@ Perfective and imperfective aren't tenses to memorize — they're two camera ang
 
 ---
 
-![Lenin - Russian God of communism and atheism](images/Lenin.png)
+![Lenin - Russian God of communism and atheism](Lenin.png)
 
 ## Contact
 
