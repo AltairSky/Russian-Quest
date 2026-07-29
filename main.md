@@ -18,6 +18,8 @@ Perfective and imperfective aren't tenses to memorize — they're two camera ang
 
 ---
 
+![Lenin - Russian God of communism and atheism](images/Lenin.png)
+
 ## Contact
 
 First step is a short trial lesson: we talk, I listen to where you are, and I sketch the route. No placement tests, no pressure.
