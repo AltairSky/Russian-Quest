@@ -1,6 +1,6 @@
 # Test post: everything the blog can render
 
-This first paragraph is plain text. Below, every capability the site's markdown supports, one by one — plus a table at the end, which is **not** supported yet (it will render as plain text, so you can see what failure looks like too).
+This first paragraph is plain text. Below, every capability the site's markdown supports, one by one — including tables.
 
 ## Inline formatting (rich text)
 
@@ -44,16 +44,20 @@ A link whose text starts with ./ renders as a button:
 
 [./press-me](https://example.com)
 
-## Table — NOT supported (yet)
+## Table
 
-The markdown table below will NOT render as a table; the site's renderer doesn't parse pipe syntax, so it comes out as raw text lines:
+Tables now render properly, with an optional header row, themed borders, and inline formatting inside cells. Wide tables scroll sideways on phones:
 
-| prefix | meaning | example |
-|--------|---------|---------|
-| в- | in | войти́ |
-| вы- | out | вы́йти |
+| prefix | core meaning | with идти́ | result |
+|--------|--------------|-----------|--------|
+| в- | **in** | войти́ | `to enter` |
+| вы- | **out** | вы́йти | `to exit` |
+| пере- | **across** | перейти́ | `to cross` |
 
-If tables turn out to be needed for your grammar materials, ask Claude to add table support to the renderer.
+A header row is optional — a bare grid works too:
+
+| за́мок | castle |
+| замо́к | lock |
 
 ## Edge cases
 
