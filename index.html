@@ -196,6 +196,10 @@
   .md li { padding-left: 1.5em; position: relative; }
   .md li::before { content: ">"; position: absolute; left: 0.3em; color: var(--dim); }
   .md hr { border: none; border-top: 1px dashed var(--hair); margin: 2.2em 0; }
+  .md .tablewrap { overflow-x: auto; margin-top: 1.4em; }
+  .md table { border-collapse: collapse; font-size: 13.5px; line-height: 1.55; }
+  .md th, .md td { border: 1px solid var(--hair); padding: 6px 14px; text-align: left; vertical-align: top; }
+  .md th { color: var(--bright); border-bottom: 2px solid var(--dim); }
   .md img, .md video, .md iframe {
     display: block; width: 100%; max-width: 100%;
     border: 1px solid var(--hair); border-radius: 4px;
@@ -245,14 +249,32 @@
     overflow-x: auto;
   }
   .g-status { color: var(--dim); font-size: 12.5px; margin-top: 0.5em; }
-  .g-task { margin-top: 1.8em; color: var(--dim); }
+  .g-task { margin-top: 1.8em; color: var(--fg); font-weight: 700; }
+  .g-formula {
+    margin-top: 0.9em;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5em;
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: 700; color: var(--bright);
+    line-height: 1.6;
+  }
+  .g-formula .plus { color: var(--dim); font-weight: 400; }
+  .g-formula .base { color: var(--accent); }
+  .g-formula .gm { font-style: italic; }
+  .slot {
+    display: inline-block; min-width: 2.3em; text-align: center;
+    border: 2px dashed var(--dim); border-radius: 6px;
+    padding: 0.02em 0.35em;
+    color: var(--accent);
+  }
+  .slot.filled { border-style: solid; border-color: var(--accent); }
+  .slot.fixed { border-style: solid; border-color: var(--red); }
+  .g-hint { color: var(--dim); font-size: 13px; margin-top: 0.5em; }
+  .g-fb .ru { color: var(--accent); font-weight: 700; }
   .g-meaning {
     font-size: clamp(19px, 4.5vw, 24px);
     color: var(--bright); font-weight: 700;
     margin-top: 0.2em; line-height: 1.4;
   }
-  .g-base { margin-top: 1.5em; }
-  .g-base .ru, .g-fb .ru { color: var(--accent); font-weight: 700; }
   .g-opts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1.2em; }
   .g-opt {
     font: inherit; font-size: 15px;
@@ -359,6 +381,13 @@
      **bold**  *italic*  `ру́сский текст`  [link](https://url)
      - list item
      ---                     ← dashed divider
+
+   TABLES (work on every page):
+     | prefix | meaning |
+     |--------|---------|
+     | в-     | in      |
+     Header separator row is optional; cells support **bold**,
+     \`русский\`, and [links](...). Wide tables scroll sideways on phones.
 
    IMAGES & VIDEO (each on its own line, file uploaded to the repo or a URL)
      ![caption](photo.jpg)            → image
@@ -481,21 +510,37 @@ function media(alt, url) {
   return `<img src="${esc(url)}" alt="${esc(alt)}" loading="lazy">${cap}`;
 }
 function renderBlocks(lines) {
-  let html = "", para = [], list = [];
+  let html = "", para = [], list = [], table = [];
   const flushPara = () => { if (para.length) { html += `<p>${inline(para.join(" "))}</p>`; para = []; } };
   const flushList = () => { if (list.length) { html += `<ul>${list.map(li => `<li>${inline(li)}</li>`).join("")}</ul>`; list = []; } };
+  const isSep = s => /^\|?[\s:|-]+\|?$/.test(s) && s.includes("-");
+  const cells = r => r.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map(c => inline(c.trim()));
+  const flushTable = () => {
+    if (!table.length) return;
+    let header = null, body = [...table];
+    if (table.length >= 2 && isSep(table[1])) { header = table[0]; body = table.slice(2); }
+    body = body.filter(r => !isSep(r));
+    let t = '<div class="tablewrap"><table>';
+    if (header) t += "<thead><tr>" + cells(header).map(c => `<th>${c}</th>`).join("") + "</tr></thead>";
+    t += "<tbody>" + body.map(r => "<tr>" + cells(r).map(c => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table></div>";
+    html += t;
+    table = [];
+  };
+  const flushAll = () => { flushPara(); flushList(); flushTable(); };
   for (const raw of lines) {
     const line = raw.trimEnd();
     const m = line.match(/^!\[(.*?)\]\((.+?)\)\s*$/);
-    if (!line.trim()) { flushPara(); flushList(); continue; }
-    if (m) { flushPara(); flushList(); html += media(m[1], m[2]); continue; }
-    if (line.startsWith("## ")) { flushPara(); flushList(); html += `<h2>${inline(line.slice(3))}</h2>`; continue; }
-    if (line.startsWith("# "))  { flushPara(); flushList(); html += `<h2>${inline(line.slice(2))}</h2>`; continue; }
-    if (/^---+$/.test(line.trim())) { flushPara(); flushList(); html += "<hr>"; continue; }
-    if (line.startsWith("- ")) { flushPara(); list.push(line.slice(2)); continue; }
+    if (line.trim().startsWith("|")) { flushPara(); flushList(); table.push(line.trim()); continue; }
+    if (!line.trim()) { flushAll(); continue; }
+    if (m) { flushAll(); html += media(m[1], m[2]); continue; }
+    if (line.startsWith("## ")) { flushAll(); html += `<h2>${inline(line.slice(3))}</h2>`; continue; }
+    if (line.startsWith("# "))  { flushAll(); html += `<h2>${inline(line.slice(2))}</h2>`; continue; }
+    if (/^---+$/.test(line.trim())) { flushAll(); html += "<hr>"; continue; }
+    if (line.startsWith("- ")) { flushPara(); flushTable(); list.push(line.slice(2)); continue; }
+    flushTable();
     para.push(line);
   }
-  flushPara(); flushList();
+  flushAll();
   return html;
 }
 function renderPostList(posts) {
@@ -527,7 +572,7 @@ function renderBlogSection(lines) {
 /* Set GITHUB_REPO to this site's repository name after deploy to enable
    automatic listing of the posts/ folder via the GitHub API. */
 const GITHUB_USER = "AltairSky";
-const GITHUB_REPO = "Russian-Quest";
+const GITHUB_REPO = "";
 
 let SECTIONS = { main: [], blog: [] };
 let EXT_POSTS = null;                       /* posts loaded from posts/ files */
@@ -736,10 +781,17 @@ function renderRound() {
   g.current = { it, opts };
   pageEl.innerHTML = `
     <div class="game">
-      <div class="g-status">prefix lab · round ${g.i + 1}/${g.pool.length} · score ${g.score}${g.streak > 1 ? " · streak " + g.streak : ""}</div>
+      <div class="g-status">round ${g.i + 1}/${g.pool.length} · score ${g.score}${g.streak > 1 ? " · streak " + g.streak : ""}</div>
       <pre class="g-anim" id="ganim" aria-hidden="true"></pre>
-      <p class="g-task"><span class="ru">идти́</span> = to go · which prefix makes it mean:</p>
-      <div class="g-meaning">“${it.meaning}”</div>
+      <p class="g-task">Build the Russian verb — tap the prefix that fits:</p>
+      <div class="g-formula">
+        <span class="slot" id="gslot">?</span>
+        <span class="plus">+</span>
+        <span class="base">идти́</span>
+        <span class="plus">=</span>
+        <span class="gm">“${it.meaning}”</span>
+      </div>
+      <p class="g-hint">идти́ means <em>to go</em></p>
       <div class="g-opts">${opts.map((x, k) =>
         `<button class="g-opt" onclick="answer(${k})"><span class="key">${k + 1}</span>${x.o}</button>`).join("")}
       </div>
@@ -755,6 +807,8 @@ function answer(k) {
   clearInterval(animTimer);
   const anim = document.getElementById("ganim");
   if (anim) anim.textContent = it.frames[it.frames.length - 1];
+  const slot = document.getElementById("gslot");
+  if (slot) { slot.textContent = it.pre; slot.classList.add(hit ? "filled" : "fixed"); }
   document.querySelectorAll(".g-opt").forEach((b, i) => {
     b.disabled = true;
     if (opts[i].correct) b.classList.add("hit");
@@ -762,7 +816,7 @@ function answer(k) {
   });
   if (hit) { g.score++; g.streak++; } else { g.streak = 0; }
   document.getElementById("gfb").innerHTML =
-    `${hit ? "✓" : "✗"} ${it.pre} + идти́ = <span class="ru">${it.result}</span> · ${it.why}
+    `${hit ? "✓" : "✗ the answer was " + it.pre + " —"} <span class="ru">${it.result}</span> · ${it.why}
      <div><button class="chip g-next" onclick="nextRound()">${g.i + 1 < g.pool.length ? "next →" : "results →"}</button></div>`;
 }
 function nextRound() {
