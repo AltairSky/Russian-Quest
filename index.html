@@ -106,6 +106,16 @@
     body { font-size: 16.5px; }
   }
 
+  /* wide screens: terminal docks left, the stage takes the rest */
+  .stage { display: none; }
+  @media (min-width: 1200px) {
+    body { display: flex; align-items: stretch; }
+    .term { flex: 0 0 820px; width: 820px; border-right: 1px solid var(--hair); }
+    .stage { display: block; flex: 1 1 auto; position: relative; z-index: 1; }
+    .stage .sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; }
+    .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  }
+
   /* CRT scanlines — amber & green only */
   body::before {
     content: "";
@@ -248,19 +258,6 @@
 
   .flash { color: var(--red); min-height: 1.6em; margin-top: 1em; font-size: 13px; }
 
-  /* ---------- side decorations (wide screens only) ---------- */
-  .deco {
-    position: fixed; top: 0; bottom: 0; z-index: 3;
-    display: none;
-    pointer-events: none; user-select: none;
-    color: var(--accent); opacity: 0.07;
-    font-size: 36px; font-weight: 700; line-height: 2.5;
-    padding-top: 9vh;
-    text-shadow: var(--textglow);
-  }
-  .deco-l { left: 0; width: calc((100vw - var(--col)) / 2); text-align: center; }
-  .deco-r { right: 0; width: calc((100vw - var(--col)) / 2); text-align: center; }
-  @media (min-width: 1200px) { .deco { display: block; } }
 
   /* ---------- game: prefix lab ---------- */
   .g-anim {
@@ -300,12 +297,19 @@
     color: var(--bright); font-weight: 700;
     margin-top: 0.2em; line-height: 1.4;
   }
-  .g-opts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1.2em; }
+  .g-opts {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px; margin-top: 1.2em; max-width: 560px;
+  }
+  @media (min-width: 700px) {
+    .g-opts { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 660px; }
+  }
   .g-opt {
-    font: inherit; font-size: 17.5px; font-weight: 700;
+    font: inherit; font-size: 17px; font-weight: 700;
+    width: 100%; text-align: center;
     background: color-mix(in srgb, var(--accent) 9%, transparent);
     border: 1.5px solid var(--accent); border-radius: 8px;
-    color: var(--accent); padding: 0.7em 1.5em; cursor: pointer;
+    color: var(--accent); padding: 0.8em 0.4em; cursor: pointer;
     text-decoration: none;
     transition: background 0.12s ease, transform 0.08s ease;
   }
@@ -321,7 +325,16 @@
   .g-opt:disabled { cursor: default; }
   .g-cta { border-color: var(--accent); color: var(--accent); font-weight: 700; }
   .g-fb { margin-top: 1.5em; min-height: 3.2em; }
-  .g-fb .g-next { margin-top: 1em; }
+  .g-next {
+    display: block; width: 100%; max-width: 560px;
+    margin-top: 1.1em;
+    font: inherit; font-size: 16.5px; font-weight: 700;
+    padding: 0.85em 1em;
+    background: none;
+    border: 1.5px solid var(--bright); border-radius: 8px;
+    color: var(--bright); cursor: pointer;
+  }
+  .g-next:hover { background: color-mix(in srgb, var(--bright) 12%, transparent); }
 
   /* ================= bottom bar: chips + input ================= */
   .bottombar {
@@ -352,8 +365,6 @@
 </head>
 <body data-theme="ruby">
 
-<div class="deco deco-l" aria-hidden="true">вы-<br>при-<br>за-<br>пере-<br>у-<br>до-</div>
-<div class="deco deco-r" aria-hidden="true">в-<br>от-<br>под-<br>об-<br>на-<br>с-</div>
 
 <div class="term">
   <div class="titlebar">
@@ -382,6 +393,8 @@
     </div>
   </div>
 </div>
+
+<div class="stage" aria-hidden="true"><div class="sticky"><canvas id="stagecanvas"></canvas></div></div>
 
 <script>
 /* =====================================================================
@@ -868,7 +881,7 @@ function answer(k) {
   if (hit) { g.score++; g.streak++; } else { g.streak = 0; }
   document.getElementById("gfb").innerHTML =
     `${hit ? "✓" : "✗ the answer was " + it.pre + " —"} <span class="ru">${it.result}</span> · ${it.why}
-     <div><button class="chip g-next" onclick="nextRound()">${g.i + 1 < g.pool.length ? "next →" : "results →"}</button></div>`;
+     <div><button class="g-next" onclick="nextRound()">${g.i + 1 < g.pool.length ? "next →" : "results →"}</button></div>`;
 }
 function nextRound() {
   if (!g) return;
@@ -899,8 +912,10 @@ function endGame() {
 }
 /* answer with keys 1–4 */
 document.addEventListener("keydown", e => {
-  if (currentPage !== "game" || !g || g.answered) return;
+  if (currentPage !== "game" || !g) return;
   if (document.activeElement === inputEl) return;
+  if (g.answered && e.key === "Enter") { nextRound(); return; }
+  if (g.answered) return;
   const n = parseInt(e.key, 10);
   if (n >= 1 && n <= 4) answer(n - 1);
 });
@@ -942,8 +957,86 @@ inputEl.addEventListener("keydown", e => {
   if (e.key === "Enter") { const v = inputEl.value; inputEl.value = ""; run(v); }
 });
 
+/* ================= stage: phosphor oscilloscope (wide screens) ================= */
+const stageMq = window.matchMedia("(min-width: 1200px)");
+let stageRaf = 0;
+const hexCache = {};
+function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
+function hexRgb(hex) {
+  if (hexCache[hex]) return hexCache[hex];
+  const m = hex.match(/^#?([0-9a-f]{6})$/i);
+  let out = "16,20,26";
+  if (m) { const n = parseInt(m[1], 16); out = `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; }
+  return hexCache[hex] = out;
+}
+function stageFrame() {
+  const cv = document.getElementById("stagecanvas");
+  if (!cv || !stageMq.matches) { stageRaf = 0; return; }
+  const ctx = cv.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) { stageRaf = requestAnimationFrame(stageFrame); return; }
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + ",1)";
+    ctx.fillRect(0, 0, w, h);
+  }
+  const t = performance.now() / 1000;
+  /* phosphor persistence: fade the previous frame instead of clearing it */
+  ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + "," + (reduced ? 1 : 0.07) + ")";
+  ctx.fillRect(0, 0, w, h);
+  /* faint scope grid */
+  ctx.strokeStyle = "rgba(" + hexRgb(cssVar("--fg")) + ",0.03)";
+  ctx.lineWidth = 1;
+  const step = 46;
+  ctx.beginPath();
+  for (let x = (w / 2) % step; x < w; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+  for (let y = (h / 2) % step; y < h; y += step) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+  ctx.stroke();
+  /* three slow harmonic traces in the theme accent */
+  const accent = cssVar("--accent");
+  ctx.shadowColor = accent;
+  const waves = [
+    { amp: 0.17, k: 2.2, sp: 0.50, ph: 0.0, alpha: 0.85, blur: 14 },
+    { amp: 0.10, k: 3.4, sp: -0.36, ph: 2.1, alpha: 0.50, blur: 10 },
+    { amp: 0.23, k: 1.3, sp: 0.22, ph: 4.2, alpha: 0.32, blur: 18 }
+  ];
+  for (const wv of waves) {
+    ctx.beginPath();
+    ctx.lineWidth = 1.6;
+    ctx.shadowBlur = wv.blur;
+    ctx.strokeStyle = accent;
+    ctx.globalAlpha = wv.alpha * (0.75 + 0.25 * Math.sin(t * 0.7 + wv.ph));
+    const breathe = 0.6 + 0.4 * Math.sin(t * 0.23 + wv.ph);
+    for (let x = 0; x <= w; x += 3) {
+      const u = x / w;
+      const env = Math.sin(Math.PI * u);          /* traces pinch at the edges */
+      const y = h / 2 + env * wv.amp * h * breathe *
+                Math.sin(u * Math.PI * 2 * wv.k + t * wv.sp * 2 + wv.ph);
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  if (reduced) { stageRaf = 0; return; }        /* one static frame is enough */
+  stageRaf = requestAnimationFrame(stageFrame);
+}
+function stageStart() {
+  if (stageRaf || !stageMq.matches || document.hidden) return;
+  stageRaf = requestAnimationFrame(stageFrame);
+}
+stageMq.addEventListener ? stageMq.addEventListener("change", stageStart) : stageMq.addListener(stageStart);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { cancelAnimationFrame(stageRaf); stageRaf = 0; }
+  else stageStart();
+});
+window.addEventListener("resize", stageStart);
+
 /* boot */
 (async () => {
+  stageStart();
   /* default theme by device: ruby on phones, green on desktop */
   if (window.matchMedia("(min-width: 900px)").matches) setTheme("green");
   await loadContent();
