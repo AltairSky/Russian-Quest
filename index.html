@@ -100,6 +100,10 @@
     line-height: 1.75;
     transition: background 0.3s ease, color 0.3s ease;
   }
+  @media (min-width: 900px) {
+    body { font-size: 16.5px; }
+    .term { max-width: 920px; }
+  }
 
   /* CRT scanlines — amber & green only */
   body::before {
@@ -132,6 +136,7 @@
 
   /* ================= terminal window ================= */
   .term {
+    position: relative; z-index: 2;
     max-width: 860px;
     margin: 0 auto;
     min-height: 100vh;
@@ -237,6 +242,20 @@
 
   .flash { color: var(--red); min-height: 1.6em; margin-top: 1em; font-size: 13px; }
 
+  /* ---------- side decorations (wide screens only) ---------- */
+  .deco {
+    position: fixed; top: 0; bottom: 0; z-index: 0;
+    display: none;
+    pointer-events: none; user-select: none;
+    color: var(--accent); opacity: 0.07;
+    font-size: 36px; font-weight: 700; line-height: 2.5;
+    padding-top: 9vh;
+    text-shadow: var(--textglow);
+  }
+  .deco-l { left: 0; width: calc((100vw - 920px) / 2); text-align: center; }
+  .deco-r { right: 0; width: calc((100vw - 920px) / 2); text-align: center; }
+  @media (min-width: 1200px) { .deco { display: block; } }
+
   /* ---------- game: prefix lab ---------- */
   .g-anim {
     margin-top: 1.5em;
@@ -277,15 +296,22 @@
   }
   .g-opts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1.2em; }
   .g-opt {
-    font: inherit; font-size: 15px;
-    background: none; border: 1px solid var(--hair); border-radius: 6px;
-    color: var(--fg); padding: 0.6em 1.15em; cursor: pointer;
+    font: inherit; font-size: 17.5px; font-weight: 700;
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+    border: 1.5px solid var(--accent); border-radius: 8px;
+    color: var(--accent); padding: 0.7em 1.5em; cursor: pointer;
     text-decoration: none;
+    transition: background 0.12s ease, transform 0.08s ease;
   }
-  .g-opt:hover:not(:disabled) { color: var(--bright); border-color: var(--dim); }
+  .g-opt:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    transform: translateY(-1px);
+  }
+  .g-opt:active:not(:disabled) { transform: translateY(0); }
   .g-opt .key { color: var(--dim); font-size: 12px; margin-right: 0.55em; }
-  .g-opt.hit { border-color: var(--accent); color: var(--accent); }
-  .g-opt.miss { border-color: var(--red); color: var(--red); opacity: 0.85; }
+  .g-opt.hit { background: var(--accent); color: var(--bg); text-shadow: none; }
+  .g-opt.miss { border-color: var(--red); color: var(--red); background: none; opacity: 0.9; }
+  .g-opt:disabled:not(.hit):not(.miss) { opacity: 0.45; background: none; border-color: var(--hair); color: var(--fg); }
   .g-opt:disabled { cursor: default; }
   .g-cta { border-color: var(--accent); color: var(--accent); font-weight: 700; }
   .g-fb { margin-top: 1.5em; min-height: 3.2em; }
@@ -316,6 +342,9 @@
 </style>
 </head>
 <body data-theme="ruby">
+
+<div class="deco deco-l" aria-hidden="true">вы-<br>при-<br>за-<br>пере-<br>у-<br>до-</div>
+<div class="deco deco-r" aria-hidden="true">в-<br>от-<br>под-<br>об-<br>на-<br>с-</div>
 
 <div class="term">
   <div class="titlebar">
@@ -620,19 +649,28 @@ async function loadContent() {
 }
 async function loadExternalPosts() {
   let files = null;
+  let attempts = [];
+  /* work out user/repo — explicit constants win, otherwise derive from the URL */
+  let user = GITHUB_USER, repo = GITHUB_REPO;
+  if (location.hostname.endsWith(".github.io")) user = location.hostname.split(".")[0] || user;
+  if (!repo) {
+    const seg = location.pathname.split("/").filter(Boolean);
+    if (seg.length && !seg[0].includes(".")) repo = seg[0];            /* project page: /repo/... */
+    else if (location.hostname.endsWith(".github.io")) repo = location.hostname; /* user site repo */
+  }
   /* a) GitHub API listing of posts/ */
-  if (GITHUB_USER && GITHUB_REPO) {
+  if (user && repo) {
     try {
-      const r = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/posts`);
+      const r = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/posts`);
       if (r.ok) {
         const j = await r.json();
         if (Array.isArray(j)) {
           files = j.map(f => f.name).filter(n => n.endsWith(".md"));
-          postsSource = "posts/ (GitHub API)";
+          postsSource = `posts/ via API (${user}/${repo})`;
         }
-      }
-    } catch (e) { /* fall through */ }
-  }
+      } else attempts.push(`API ${user}/${repo}: ${r.status}`);
+    } catch (e) { attempts.push(`API ${user}/${repo}: unreachable`); }
+  } else attempts.push("API: repo unknown — set GITHUB_REPO");
   /* b) manifest file */
   if (!files) {
     try {
@@ -640,16 +678,19 @@ async function loadExternalPosts() {
       if (r.ok) {
         files = (await r.text()).split(/\r?\n/).map(s => s.trim()).filter(s => s.endsWith(".md"));
         postsSource = "posts/index.txt";
-      }
-    } catch (e) { /* fall through */ }
+      } else attempts.push(`index.txt: ${r.status}`);
+    } catch (e) { attempts.push("index.txt: unreachable"); }
   }
-  if (!files || !files.length) { postsSource = blogSource; return null; }
+  if (!files || !files.length) {
+    postsSource = blogSource + " (" + (files ? "posts list empty" : attempts.join(" · ")) + ")";
+    return null;
+  }
   files.sort().reverse();                    /* date-prefixed names → newest first */
   const posts = await Promise.all(files.map(async name => {
     try {
       const r = await fetch("posts/" + name, { cache: "no-store" });
       if (!r.ok) return null;
-      const lines = r.ok ? (await r.text()).split(/\r?\n/) : [];
+      const lines = (await r.text()).split(/\r?\n/);
       let title = name.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-?/, "").replace(/-/g, " ");
       const body = [];
       let gotTitle = false;
@@ -663,6 +704,7 @@ async function loadExternalPosts() {
     } catch (e) { return null; }
   }));
   const ok = posts.filter(Boolean);
+  if (!ok.length) postsSource = blogSource + " (post files listed but failed to load)";
   return ok.length ? ok : null;
 }
 
@@ -893,6 +935,8 @@ inputEl.addEventListener("keydown", e => {
 
 /* boot */
 (async () => {
+  /* default theme by device: ruby on phones, green on desktop */
+  if (window.matchMedia("(min-width: 900px)").matches) setTheme("green");
   await loadContent();
   EXT_POSTS = await loadExternalPosts();
   await wait(reduced ? 0 : 450);
