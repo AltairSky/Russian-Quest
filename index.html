@@ -101,7 +101,12 @@
     font-size: 14.5px;
     line-height: 1.75;
     transition: background 0.3s ease, color 0.3s ease;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
   }
+  .mid { flex: 1 1 auto; display: flex; align-items: stretch; position: relative; z-index: 2; }
   @media (min-width: 900px) {
     body { font-size: 16.5px; }
   }
@@ -109,15 +114,11 @@
   /* wide screens: terminal docks left, the stage takes the rest */
   .stage { display: none; }
   @media (min-width: 1200px) {
-    body { display: flex; align-items: stretch; }
-    .term {
-      flex: 0 0 clamp(720px, 62vw, 1240px);
-      width: clamp(720px, 62vw, 1240px);
-      border-right: 1px solid var(--hair);
-    }
+    .term { flex: 0 0 clamp(720px, 62vw, 1240px); border-right: 1px solid var(--hair); }
     .stage { display: block; flex: 1 1 auto; position: relative; z-index: 1; }
     .stage .sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; }
     .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .bottombar .chips, .bottombar .inputrow { max-width: none; }
   }
 
   /* CRT scanlines — amber & green only */
@@ -151,10 +152,8 @@
 
   /* ================= terminal window ================= */
   .term {
-    position: relative; z-index: 2;
-    width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
+    flex: 1 1 auto;
+    min-width: 0;
     background-color: var(--term);
     background-image: radial-gradient(ellipse 120% 55% at 50% 0%, var(--glow), transparent 72%);
     box-shadow: var(--inner);
@@ -370,13 +369,14 @@
 <body data-theme="ruby">
 
 
-<div class="term">
-  <div class="titlebar">
+<div class="titlebar">
     <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
     <div class="title">altair@tutor:~ — ру́сский язы́к, taught from the root up</div>
     <button class="themebtn" onclick="cycleTheme()" title="switch theme">◐ theme</button>
-  </div>
+</div>
 
+<div class="mid">
+  <div class="term">
   <div class="screen">
     <div class="bootline" id="bootline">booting tutor.sh … ok</div>
     <div class="cmdline"><span class="ps1">altair@tutor:~$</span> <span id="typed"></span><span class="cursor" aria-hidden="true"></span></div>
@@ -384,7 +384,12 @@
     <div class="flash" id="flash" role="status"></div>
   </div>
 
-  <div class="bottombar">
+  </div>
+
+  <div class="stage" aria-hidden="true"><div class="sticky"><canvas id="stagecanvas"></canvas></div></div>
+</div>
+
+<div class="bottombar">
     <div class="chips">
       <button class="chip active" id="chip-main" onclick="run('main')">main</button>
       <button class="chip" id="chip-blog" onclick="run('blog')">blog</button>
@@ -395,14 +400,11 @@
       <input id="cmdInput" type="text" autocomplete="off" spellcheck="false"
              placeholder="type a command — or just use the buttons" aria-label="command input">
     </div>
-  </div>
 </div>
-
-<div class="stage" aria-hidden="true"><div class="sticky"><canvas id="stagecanvas"></canvas></div></div>
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 9;
+const BUILD = 10;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
@@ -989,83 +991,68 @@ function stageFrame() {
     ctx.fillRect(0, 0, w, h);
   }
   const t = performance.now() / 1000;
-  /* phosphor persistence: fade the previous frame instead of clearing it */
-  ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + "," + (reduced ? 1 : 0.045) + ")";
+  const dt = Math.min(0.1, t - (stageFrame.lastT || t));
+  stageFrame.lastT = t;
+  const fs = 17;                                   /* glyph cell size */
+  const colW = 27;
+  /* (re)build columns when the panel size changes */
+  if (!stageFrame.cols || stageFrame.w !== w || stageFrame.h !== h) {
+    stageFrame.w = w; stageFrame.h = h;
+    stageFrame.cols = [];
+    const n = Math.floor(w / colW);
+    for (let i = 0; i < n; i++) {
+      if (Math.random() < 0.42) { stageFrame.cols.push(null); continue; }  /* keep it sparse */
+      stageFrame.cols.push({
+        x: i * colW + colW / 2,
+        y: Math.random() * (h / fs),
+        sp: 2.2 + Math.random() * 4.5,             /* rows per second — slow */
+        bright: Math.random() < 0.18,
+        hold: 0
+      });
+    }
+    ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + ",1)";
+    ctx.fillRect(0, 0, w, h);
+  }
+  /* phosphor persistence: old glyphs fade into trails */
+  ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + "," + (reduced ? 1 : 0.055) + ")";
   ctx.fillRect(0, 0, w, h);
-  /* faint scope grid */
-  ctx.strokeStyle = "rgba(" + hexRgb(cssVar("--fg")) + ",0.03)";
-  ctx.lineWidth = 1;
-  const step = 46;
-  ctx.beginPath();
-  for (let x = (w / 2) % step; x < w; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
-  for (let y = (h / 2) % step; y < h; y += step) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
-  ctx.stroke();
 
   const accent = cssVar("--accent");
-  ctx.shadowColor = accent;
-  ctx.strokeStyle = accent;
+  const GLYPHS = "абвгдежзиклмнопрстуфхцчшщыьэюяАБВГДЕЖЗИКЛМНПРСТУФХЦЧШЩЫЭЮЯ-́";
+  ctx.font = fs + "px ui-monospace, Menlo, Consolas, monospace";
+  ctx.textAlign = "center";
 
-  /* auxiliary channel traces hugging the top and bottom of the scope */
-  const aux = [
-    { cy: 0.11, amp: 0.055, k: 5.0, sp: 0.65, ph: 0.8, alpha: 0.42, blur: 9 },
-    { cy: 0.89, amp: 0.055, k: 3.6, sp: -0.5, ph: 3.9, alpha: 0.42, blur: 9 }
-  ];
-  for (const wv of aux) {
-    ctx.beginPath();
-    ctx.lineWidth = 1.3;
-    ctx.shadowBlur = wv.blur;
-    ctx.globalAlpha = wv.alpha * (0.7 + 0.3 * Math.sin(t * 0.6 + wv.ph));
-    const breathe = 0.65 + 0.35 * Math.sin(t * 0.21 + wv.ph);
-    for (let x = 0; x <= w; x += 3) {
-      const u = x / w;
-      const env = 0.35 + 0.65 * Math.sin(Math.PI * u);
-      const y = h * wv.cy + env * wv.amp * h * breathe *
-                Math.sin(u * Math.PI * 2 * wv.k + t * wv.sp * 2 + wv.ph);
-      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-
-  /* central figure: a slowly morphing Lissajous beam spanning the full height */
-  const cx = w / 2, cy = h / 2;
-  const Ax = w * 0.37, Ay = h * 0.38;
-  const fa = 3 + 1.6 * Math.sin(t * 0.031);
-  const fb = 2 + 1.6 * Math.sin(t * 0.024 + 1.7);
-  const dph = t * 0.10;
-  ctx.lineWidth = 1.9;
-  ctx.shadowBlur = 16;
   if (reduced) {
-    /* static: draw a full closed 3:2 figure once */
-    ctx.globalAlpha = 0.6;
-    ctx.beginPath();
-    for (let sPar = 0; sPar <= Math.PI * 2 + 0.01; sPar += 0.01) {
-      const x = cx + Ax * Math.sin(3 * sPar + 0.6);
-      const y = cy + Ay * Math.sin(2 * sPar);
-      sPar === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  } else {
-    /* animated: draw only the beam's newest arc; persistence paints the rest */
-    ctx.globalAlpha = 0.9;
-    ctx.beginPath();
-    const speed = 1.15;
-    let first = true;
-    for (let sPar = t - 0.07; sPar <= t; sPar += 0.0035) {
-      const u = sPar * speed;
-      const x = cx + Ax * Math.sin(fa * u + dph);
-      const y = cy + Ay * Math.sin(fb * u);
-      first ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      first = false;
-    }
-    ctx.stroke();
-    /* the beam head, slightly brighter */
-    const u = t * speed;
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 22;
-    ctx.beginPath();
-    ctx.arc(cx + Ax * Math.sin(fa * u + dph), cy + Ay * Math.sin(fb * u), 1.6, 0, Math.PI * 2);
+    /* static: one scattered field of dim glyphs */
     ctx.fillStyle = accent;
-    ctx.fill();
+    for (const c of stageFrame.cols) {
+      if (!c) continue;
+      const rows = Math.floor(h / fs);
+      for (let r = 0; r < rows; r += 2 + Math.floor(Math.random() * 4)) {
+        ctx.globalAlpha = 0.05 + Math.random() * 0.12;
+        ctx.fillText(GLYPHS[Math.floor(Math.random() * GLYPHS.length)], c.x, r * fs);
+      }
+    }
+  } else {
+    for (const c of stageFrame.cols) {
+      if (!c) continue;
+      const prevRow = Math.floor(c.y);
+      c.y += c.sp * dt;
+      const row = Math.floor(c.y);
+      if (row !== prevRow) {                       /* stamp one glyph per new row */
+        const ch = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+        ctx.shadowColor = accent;
+        ctx.shadowBlur = c.bright ? 10 : 0;
+        ctx.globalAlpha = c.bright ? 0.75 : 0.34;
+        ctx.fillStyle = accent;
+        ctx.fillText(ch, c.x, (row % Math.ceil(h / fs + 6)) * fs - fs * 2);
+      }
+      if (c.y * fs > h + fs * 6 && Math.random() < 0.02) {
+        c.y = -Math.random() * 14;
+        c.sp = 2.2 + Math.random() * 4.5;
+        c.bright = Math.random() < 0.18;
+      }
+    }
   }
   ctx.globalAlpha = 1;
   ctx.shadowBlur = 0;
