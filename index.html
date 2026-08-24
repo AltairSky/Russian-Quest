@@ -110,7 +110,11 @@
   .stage { display: none; }
   @media (min-width: 1200px) {
     body { display: flex; align-items: stretch; }
-    .term { flex: 0 0 820px; width: 820px; border-right: 1px solid var(--hair); }
+    .term {
+      flex: 0 0 clamp(720px, 62vw, 1240px);
+      width: clamp(720px, 62vw, 1240px);
+      border-right: 1px solid var(--hair);
+    }
     .stage { display: block; flex: 1 1 auto; position: relative; z-index: 1; }
     .stage .sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; }
     .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -397,6 +401,8 @@
 <div class="stage" aria-hidden="true"><div class="sticky"><canvas id="stagecanvas"></canvas></div></div>
 
 <script>
+/* build number — bump on every deployed change; shown in the boot line and `status` */
+const BUILD = 9;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
@@ -943,7 +949,7 @@ function run(cmdRaw) {
     return;
   }
   if (cmd === "status") {
-    flash(`main: ${mainSource} · posts: ${postsSource || blogSource}${EXT_POSTS ? " (" + EXT_POSTS.length + " files)" : ""}`);
+    flash(`build ${BUILD} · main: ${mainSource} · posts: ${postsSource || blogSource}${EXT_POSTS ? " (" + EXT_POSTS.length + " files)" : ""}`);
     return;
   }
   if (cmd === "clear") { pageEl.innerHTML = ""; flash(""); return; }
@@ -984,7 +990,7 @@ function stageFrame() {
   }
   const t = performance.now() / 1000;
   /* phosphor persistence: fade the previous frame instead of clearing it */
-  ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + "," + (reduced ? 1 : 0.07) + ")";
+  ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + "," + (reduced ? 1 : 0.045) + ")";
   ctx.fillRect(0, 0, w, h);
   /* faint scope grid */
   ctx.strokeStyle = "rgba(" + hexRgb(cssVar("--fg")) + ",0.03)";
@@ -994,29 +1000,72 @@ function stageFrame() {
   for (let x = (w / 2) % step; x < w; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
   for (let y = (h / 2) % step; y < h; y += step) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
   ctx.stroke();
-  /* three slow harmonic traces in the theme accent */
+
   const accent = cssVar("--accent");
   ctx.shadowColor = accent;
-  const waves = [
-    { amp: 0.17, k: 2.2, sp: 0.50, ph: 0.0, alpha: 0.85, blur: 14 },
-    { amp: 0.10, k: 3.4, sp: -0.36, ph: 2.1, alpha: 0.50, blur: 10 },
-    { amp: 0.23, k: 1.3, sp: 0.22, ph: 4.2, alpha: 0.32, blur: 18 }
+  ctx.strokeStyle = accent;
+
+  /* auxiliary channel traces hugging the top and bottom of the scope */
+  const aux = [
+    { cy: 0.11, amp: 0.055, k: 5.0, sp: 0.65, ph: 0.8, alpha: 0.42, blur: 9 },
+    { cy: 0.89, amp: 0.055, k: 3.6, sp: -0.5, ph: 3.9, alpha: 0.42, blur: 9 }
   ];
-  for (const wv of waves) {
+  for (const wv of aux) {
     ctx.beginPath();
-    ctx.lineWidth = 1.6;
+    ctx.lineWidth = 1.3;
     ctx.shadowBlur = wv.blur;
-    ctx.strokeStyle = accent;
-    ctx.globalAlpha = wv.alpha * (0.75 + 0.25 * Math.sin(t * 0.7 + wv.ph));
-    const breathe = 0.6 + 0.4 * Math.sin(t * 0.23 + wv.ph);
+    ctx.globalAlpha = wv.alpha * (0.7 + 0.3 * Math.sin(t * 0.6 + wv.ph));
+    const breathe = 0.65 + 0.35 * Math.sin(t * 0.21 + wv.ph);
     for (let x = 0; x <= w; x += 3) {
       const u = x / w;
-      const env = Math.sin(Math.PI * u);          /* traces pinch at the edges */
-      const y = h / 2 + env * wv.amp * h * breathe *
+      const env = 0.35 + 0.65 * Math.sin(Math.PI * u);
+      const y = h * wv.cy + env * wv.amp * h * breathe *
                 Math.sin(u * Math.PI * 2 * wv.k + t * wv.sp * 2 + wv.ph);
       x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.stroke();
+  }
+
+  /* central figure: a slowly morphing Lissajous beam spanning the full height */
+  const cx = w / 2, cy = h / 2;
+  const Ax = w * 0.37, Ay = h * 0.38;
+  const fa = 3 + 1.6 * Math.sin(t * 0.031);
+  const fb = 2 + 1.6 * Math.sin(t * 0.024 + 1.7);
+  const dph = t * 0.10;
+  ctx.lineWidth = 1.9;
+  ctx.shadowBlur = 16;
+  if (reduced) {
+    /* static: draw a full closed 3:2 figure once */
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    for (let sPar = 0; sPar <= Math.PI * 2 + 0.01; sPar += 0.01) {
+      const x = cx + Ax * Math.sin(3 * sPar + 0.6);
+      const y = cy + Ay * Math.sin(2 * sPar);
+      sPar === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  } else {
+    /* animated: draw only the beam's newest arc; persistence paints the rest */
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    const speed = 1.15;
+    let first = true;
+    for (let sPar = t - 0.07; sPar <= t; sPar += 0.0035) {
+      const u = sPar * speed;
+      const x = cx + Ax * Math.sin(fa * u + dph);
+      const y = cy + Ay * Math.sin(fb * u);
+      first ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      first = false;
+    }
+    ctx.stroke();
+    /* the beam head, slightly brighter */
+    const u = t * speed;
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 22;
+    ctx.beginPath();
+    ctx.arc(cx + Ax * Math.sin(fa * u + dph), cy + Ay * Math.sin(fb * u), 1.6, 0, Math.PI * 2);
+    ctx.fillStyle = accent;
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
   ctx.shadowBlur = 0;
@@ -1036,6 +1085,8 @@ window.addEventListener("resize", stageStart);
 
 /* boot */
 (async () => {
+  const bl = document.getElementById("bootline");
+  if (bl) bl.textContent = `booting tutor.sh … ok · build ${BUILD}`;
   stageStart();
   /* default theme by device: ruby on phones, green on desktop */
   if (window.matchMedia("(min-width: 900px)").matches) setTheme("green");
