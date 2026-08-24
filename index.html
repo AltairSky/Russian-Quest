@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>altair@tutor:~ — Russian tutoring</title>
 <style>
-  :root { --col: 900px; }
+  :root { --col: 900px; --pad: 22px; }
 
   /* ================= THEMES ================= */
   body[data-theme="amber"] {
@@ -109,7 +109,8 @@
   .mid { flex: 1 1 auto; display: flex; align-items: stretch; position: relative; z-index: 2; }
   @media (min-width: 900px) {
     body { font-size: 16.5px; }
-    .screen { padding: 28px 40px 44px; }
+    :root { --pad: 40px; }
+    .screen { padding: 28px var(--pad) 44px; }
     .chip { font-size: 14.5px; padding: 7px 18px; }
     .themebtn { font-size: 13.5px; padding: 4px 12px; }
     .inputrow input { font-size: 16px; }
@@ -119,7 +120,11 @@
   /* wide screens: terminal docks left, the stage takes the rest */
   .stage { display: none; }
   @media (min-width: 1200px) {
-    .term { flex: 0 0 clamp(720px, 62vw, 1240px); border-right: 1px solid var(--hair); }
+    :root { --col: clamp(820px, 60vw, 1500px); }
+    .term {
+      flex: 0 0 calc(var(--col) + var(--pad) * 2);
+      border-right: 1px solid var(--hair);
+    }
     .stage { display: block; flex: 1 1 auto; position: relative; z-index: 1; }
     .stage .sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; }
     .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -191,12 +196,12 @@
   .screen {
     flex: 1;
     width: 100%;
-    max-width: var(--col);
+    max-width: calc(var(--col) + var(--pad) * 2);
     margin: 0;
-    padding: 20px 22px 30px;
+    padding: 20px var(--pad) 30px;
     text-shadow: var(--textglow);
   }
-  @media (min-width: 600px) { .screen { padding: 26px 34px 40px; } }
+  @media (min-width: 600px) { :root { --pad: 34px; } .screen { padding: 26px var(--pad) 40px; } }
 
   .bootline { color: var(--dim); }
   .cmdline { margin-top: 1.2em; font-weight: 700; color: var(--bright); }
@@ -405,7 +410,7 @@
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 12;
+const BUILD = 13;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
