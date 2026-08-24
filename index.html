@@ -404,7 +404,7 @@
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 10;
+const BUILD = 11;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
@@ -994,37 +994,36 @@ function stageFrame() {
   const dt = Math.min(0.1, t - (stageFrame.lastT || t));
   stageFrame.lastT = t;
   const fs = 17;                                   /* glyph cell size */
-  const colW = 27;
+  const colW = 26;
+  const TAIL = 9;                                  /* falling-star tail length, in rows */
   /* (re)build columns when the panel size changes */
   if (!stageFrame.cols || stageFrame.w !== w || stageFrame.h !== h) {
     stageFrame.w = w; stageFrame.h = h;
     stageFrame.cols = [];
     const n = Math.floor(w / colW);
     for (let i = 0; i < n; i++) {
-      if (Math.random() < 0.42) { stageFrame.cols.push(null); continue; }  /* keep it sparse */
+      if (Math.random() < 0.25) { stageFrame.cols.push(null); continue; }
       stageFrame.cols.push({
         x: i * colW + colW / 2,
         y: Math.random() * (h / fs),
-        sp: 2.2 + Math.random() * 4.5,             /* rows per second — slow */
-        bright: Math.random() < 0.18,
-        hold: 0
+        sp: 6 + Math.random() * 7,                 /* rows per second */
+        bright: Math.random() < 0.25,
+        chars: []
       });
     }
-    ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + ",1)";
-    ctx.fillRect(0, 0, w, h);
   }
-  /* phosphor persistence: old glyphs fade into trails */
-  ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + "," + (reduced ? 1 : 0.055) + ")";
+  /* full clear every frame — tails are drawn explicitly, nothing lingers */
+  ctx.fillStyle = "rgba(" + hexRgb(cssVar("--bg")) + ",1)";
   ctx.fillRect(0, 0, w, h);
 
   const accent = cssVar("--accent");
   const GLYPHS = "абвгдежзиклмнопрстуфхцчшщыьэюяАБВГДЕЖЗИКЛМНПРСТУФХЦЧШЩЫЭЮЯ-́";
   ctx.font = fs + "px ui-monospace, Menlo, Consolas, monospace";
   ctx.textAlign = "center";
+  ctx.fillStyle = accent;
 
   if (reduced) {
     /* static: one scattered field of dim glyphs */
-    ctx.fillStyle = accent;
     for (const c of stageFrame.cols) {
       if (!c) continue;
       const rows = Math.floor(h / fs);
@@ -1034,23 +1033,33 @@ function stageFrame() {
       }
     }
   } else {
+    const totalRows = Math.ceil(h / fs);
     for (const c of stageFrame.cols) {
       if (!c) continue;
       const prevRow = Math.floor(c.y);
       c.y += c.sp * dt;
       const row = Math.floor(c.y);
-      if (row !== prevRow) {                       /* stamp one glyph per new row */
-        const ch = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
-        ctx.shadowColor = accent;
-        ctx.shadowBlur = c.bright ? 10 : 0;
-        ctx.globalAlpha = c.bright ? 0.75 : 0.34;
-        ctx.fillStyle = accent;
-        ctx.fillText(ch, c.x, (row % Math.ceil(h / fs + 6)) * fs - fs * 2);
+      for (let r = prevRow; r < row; r++) {        /* one new glyph per row passed */
+        c.chars.unshift(GLYPHS[Math.floor(Math.random() * GLYPHS.length)]);
       }
-      if (c.y * fs > h + fs * 6 && Math.random() < 0.02) {
-        c.y = -Math.random() * 14;
-        c.sp = 2.2 + Math.random() * 4.5;
-        c.bright = Math.random() < 0.18;
+      if (c.chars.length > TAIL) c.chars.length = TAIL;
+      /* draw head + fading tail, like a falling star */
+      const headAlpha = c.bright ? 0.9 : 0.55;
+      for (let i = 0; i < c.chars.length; i++) {
+        const y = (row - i) * fs;
+        if (y < -fs || y > h + fs) continue;
+        const fade = Math.pow(1 - i / TAIL, 1.6);
+        ctx.globalAlpha = headAlpha * (i === 0 ? 1 : fade * 0.8);
+        ctx.shadowColor = accent;
+        ctx.shadowBlur = i === 0 && c.bright ? 12 : 0;
+        ctx.fillText(c.chars[i], c.x, y);
+      }
+      /* restart above the top once the whole tail has left the screen */
+      if (row - TAIL > totalRows) {
+        c.y = -Math.random() * 20;
+        c.sp = 6 + Math.random() * 7;
+        c.bright = Math.random() < 0.25;
+        c.chars = [];
       }
     }
   }
