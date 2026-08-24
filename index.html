@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>altair@tutor:~ — Russian tutoring</title>
 <style>
+  :root { --col: 900px; }
+
   /* ================= THEMES ================= */
   body[data-theme="amber"] {
     --bg: #120E08;
@@ -102,7 +104,6 @@
   }
   @media (min-width: 900px) {
     body { font-size: 16.5px; }
-    .term { max-width: 920px; }
   }
 
   /* CRT scanlines — amber & green only */
@@ -137,14 +138,12 @@
   /* ================= terminal window ================= */
   .term {
     position: relative; z-index: 2;
-    max-width: 860px;
-    margin: 0 auto;
+    width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
     background-color: var(--term);
-    background-image: radial-gradient(ellipse 130% 55% at 50% 0%, var(--glow), transparent 72%);
+    background-image: radial-gradient(ellipse 120% 55% at 50% 0%, var(--glow), transparent 72%);
     box-shadow: var(--inner);
-    border-left: 1px solid var(--hair);
-    border-right: 1px solid var(--hair);
     display: flex;
     flex-direction: column;
     transition: background-color 0.3s ease;
@@ -172,7 +171,14 @@
   .themebtn:hover { color: var(--bright); border-color: var(--dim); }
 
   /* ================= page area ================= */
-  .screen { flex: 1; padding: 20px 22px 30px; text-shadow: var(--textglow); }
+  .screen {
+    flex: 1;
+    width: 100%;
+    max-width: var(--col);
+    margin: 0 auto;
+    padding: 20px 22px 30px;
+    text-shadow: var(--textglow);
+  }
   @media (min-width: 600px) { .screen { padding: 26px 34px 40px; } }
 
   .bootline { color: var(--dim); }
@@ -244,7 +250,7 @@
 
   /* ---------- side decorations (wide screens only) ---------- */
   .deco {
-    position: fixed; top: 0; bottom: 0; z-index: 0;
+    position: fixed; top: 0; bottom: 0; z-index: 3;
     display: none;
     pointer-events: none; user-select: none;
     color: var(--accent); opacity: 0.07;
@@ -252,8 +258,8 @@
     padding-top: 9vh;
     text-shadow: var(--textglow);
   }
-  .deco-l { left: 0; width: calc((100vw - 920px) / 2); text-align: center; }
-  .deco-r { right: 0; width: calc((100vw - 920px) / 2); text-align: center; }
+  .deco-l { left: 0; width: calc((100vw - var(--col)) / 2); text-align: center; }
+  .deco-r { right: 0; width: calc((100vw - var(--col)) / 2); text-align: center; }
   @media (min-width: 1200px) { .deco { display: block; } }
 
   /* ---------- game: prefix lab ---------- */
@@ -323,6 +329,9 @@
     background: var(--bg);
     border-top: 1px solid var(--hair);
     padding: 10px 16px 12px;
+  }
+  .bottombar .chips, .bottombar .inputrow {
+    width: 100%; max-width: calc(var(--col) - 12px); margin-left: auto; margin-right: auto;
   }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
   .chip {
