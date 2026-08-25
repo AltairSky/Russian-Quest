@@ -335,7 +335,17 @@
     border-top: 1px solid var(--hair);
     padding: 10px 16px 12px;
   }
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 9px; }
+  .chip-book {
+    margin-left: auto;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+    text-shadow: none;
+  }
+  .chip-book:hover { background: var(--bright); border-color: var(--bright); color: var(--bg); }
+  .chip-book.active { background: var(--bright); border-color: var(--bright); color: var(--bg); }
   .chip {
     font: inherit; font-size: 12.5px;
     background: none; border: 1px solid var(--hair); border-radius: 5px;
@@ -366,7 +376,7 @@
   @media (min-width: 1200px) {
     /* breathing room between the text and the animation — about a third of
        the gap the old fixed-column layout produced */
-    :root { --padr: clamp(50px, 7vw, 150px); }
+    :root { --padr: clamp(90px, 14vw, 290px); }
     /* the STAGE gets a bounded share; the terminal takes everything else and
        the text fills the terminal completely — so no empty band can appear */
     .term { flex: 1 1 auto; min-width: 0; border-right: 1px solid var(--hair); }
@@ -410,6 +420,7 @@
       <button class="chip active" id="chip-main" onclick="run('main')">main</button>
       <button class="chip" id="chip-blog" onclick="run('blog')">blog</button>
       <button class="chip" id="chip-game" onclick="run('game')">game</button>
+      <button class="chip chip-book" id="chip-book" onclick="run('book')">book a lesson</button>
     </div>
     <div class="inputrow">
       <span class="ps1">$</span>
@@ -420,7 +431,7 @@
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 17;
+const BUILD = 18;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
@@ -513,6 +524,20 @@ First step is a short trial lesson: we talk, I listen to where you are, and I sk
 
 [./book-trial-lesson](https://preply.com)
 
+# book
+
+## Book a lesson
+
+The first step is a short trial lesson: we talk, I listen to where you are, and I sketch the route. No placement tests, no pressure.
+
+- **preply** — [preply.com/en/tutor/altair](https://preply.com)
+- **telegram** — [@altair_ru](https://t.me/)
+- **email** — [altair@example.com](mailto:altair@example.com)
+
+Lessons run over video call, 50 minutes, and I teach in English or Russian depending on where you are. Write in whichever language is easier for you.
+
+[./book-trial-lesson](https://preply.com)
+
 # blog
 
 ## 2026-07-26 — Why по- and у- are not the same "perfective"
@@ -552,6 +577,16 @@ const ART = {
   /\/             /   /        \   \            \/\
  /               /   /          \   \              \
 '~~..~~~..~~~..~~~..~~~..~~~..~~~..~~~..~~~..~~~..~~'`,
+  book: String.raw`
+        _______________
+       |  .---------.  |
+       |  |         |  |         ___
+       |  |   \\ /   |  |        /   \\
+       |  |    o    |  |       |  o  |
+       |  '---------'  |        \\___/
+       |_____________  |          |
+      /               \\|      ___/ \\___
+     '-----------------'     '---------'`,
   blog: String.raw`
       ______ ______
     _/      Y      \_
@@ -649,7 +684,7 @@ function renderBlogSection(lines) {
 const GITHUB_USER = "AltairSky";
 const GITHUB_REPO = "Russian-Quest";
 
-let SECTIONS = { main: [], blog: [] };
+let SECTIONS = { main: [], blog: [], book: [] };
 let EXT_POSTS = null;                       /* posts loaded from posts/ files */
 let mainSource = "built-in demo";
 let blogSource = "built-in demo";
@@ -670,7 +705,8 @@ function parseContent(text) {
   const keys = Object.keys(out);
   return {
     main: out["main"] || (keys[0] ? out[keys[0]] : []),
-    blog: out["blog"] || out["notebook"] || (keys[1] ? out[keys[1]] : [])
+    blog: out["blog"] || out["notebook"] || (keys[1] ? out[keys[1]] : []),
+    book: out["book"] || out["contact"] || []
   };
 }
 async function fetchText(path) {
@@ -692,6 +728,11 @@ async function loadContent() {
 
   if (parsed && parsed.blog.length) { SECTIONS.blog = parsed.blog; blogSource = "content.md"; }
   else { SECTIONS.blog = fb.blog; }
+
+  const bookMd = await fetchText("book.md");
+  if (bookMd) SECTIONS.book = bookMd.split(/\r?\n/);
+  else if (parsed && parsed.book.length) SECTIONS.book = parsed.book;
+  else SECTIONS.book = fb.book;
 }
 async function loadExternalPosts() {
   let files = null;
@@ -774,6 +815,7 @@ function setChips(page) {
   document.getElementById("chip-main").classList.toggle("active", page === "main");
   document.getElementById("chip-blog").classList.toggle("active", page === "blog");
   document.getElementById("chip-game").classList.toggle("active", page === "game");
+  document.getElementById("chip-book").classList.toggle("active", page === "book");
 }
 function flash(msg) {
   flashEl.textContent = msg;
@@ -791,6 +833,8 @@ async function showPage(page) {
     startGame();
   } else if (page === "help") {
     pageEl.innerHTML = HELP_HTML;
+  } else if (page === "book") {
+    pageEl.innerHTML = renderBlocks(SECTIONS.book) + `<pre class="art" aria-hidden="true">${esc(ART.book)}</pre>`;
   } else if (page === "blog") {
     const body = EXT_POSTS ? renderPostList(EXT_POSTS) : renderBlogSection(SECTIONS.blog);
     pageEl.innerHTML = body + `<pre class="art" aria-hidden="true">${esc(ART.blog)}</pre>`;
@@ -805,6 +849,7 @@ const HELP_HTML = `
   <ul>
     <li><strong>main</strong> — the main page</li>
     <li><strong>blog</strong> — short notes on how Russian works</li>
+    <li><strong>book</strong> — contacts and how to book a lesson (also: contact)</li>
     <li><strong>game</strong> — the prefix game (also: play, morph)</li>
     <li><strong>theme amber | green | ruby | lava | paper</strong> — switch the look, or tap ◐ in the title bar</li>
     <li><strong>status</strong> — where the site content was loaded from</li>
@@ -958,6 +1003,7 @@ function run(cmdRaw) {
   if (!cmd) return;
   if (cmd === "main" || cmd === "home") return showPage("main");
   if (cmd === "blog" || cmd === "notebook" || cmd === "nb") return showPage("blog");
+  if (cmd === "book" || cmd === "contact" || cmd === "contacts") return showPage("book");
   if (cmd === "play" || cmd === "game" || cmd === "morph") return showPage("game");
   if (cmd === "help" || cmd === "man" || cmd === "?") return showPage("help");
   if (cmd.startsWith("theme")) {
