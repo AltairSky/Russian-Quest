@@ -1,31 +1,19 @@
-Native Russian speaker. Linguist by obsession — historical morphology, aspect, the prefix system, the exact places where Russian logic differs from English logic. Tutor on Preply.
+My name is Altair. I am a native russian speaker. I understand how the grammar works. And I enjoy learning and teaching.
 
-My students are English speakers somewhere between `«ко́фе, пожа́луйста»` and arguing about films, slowly. I don't read a textbook aloud — I hand you the map: why the language does what it does, and which patterns pay off fastest.
+This is why you might want me to tutor you.
 
-New here? Try the [▶ prefix game](#game) — eight rounds, about ninety seconds, and you'll see the method in action.
+Now AI can easily answer your technical questions more extensively than any human do. The purpose of a teacher is to keep you engaged, interested and that you reach your learning goals. 
 
-## Roots before words
 
-One root carries twenty verbs. We learn it once, then harvest the family: `-держ-` gives содержа́ть *contain*, поддержа́ть *support*, воздержа́ться *abstain*.
-
-## Prefixes as grammar, not decoration
-
-Each prefix has a spatial core and predictable extensions. `вы-` *out, to completion* · `за-` *beyond, to begin* · `пере-` *across, again*. Unknown verbs stop being unknown.
-
-## Aspect as a way of seeing
-
-Perfective and imperfective aren't tenses to memorize — they're two camera angles on one event. `писа́л письмо` *was writing* · `написа́л письмо` *got it written*.
-
----
-
-![Lenin - Russian God of communism and atheism](Images/Lenin.png)
 
 ## Contact
 
-First step is a short trial lesson: we talk, I listen to where you are, and I sketch the route. No placement tests, no pressure.
+You can drop me a line here.
 
-- preply — [preply.com/en/tutor/altair](https://preply.com)
-- telegram — [@altair_ru](https://t.me/)
-- email — [altair@example.com](mailto:altair@example.com)
+- whatsapp — + 7 707 411 94 27
+- telegram — [@askaltair](https://t.me/askaltair)
+- email — [altairph@gmail.com](mailto:altairph@gmail.com)
 
-[./book-trial-lesson](https://preply.com)
+*I am just starting with teaching, so for a short while I am tutoring for free.*
+
+![Lenin - Russian God of communism and atheism wants you to learn Russian](Images/Lenin.png)
