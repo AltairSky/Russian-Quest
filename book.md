@@ -1,11 +1,10 @@
 ## Book a lesson
 
-The first step is a short trial lesson: we talk, I listen to where you are, and I sketch the route. No placement tests, no pressure.
 
-- **preply** — [preply.com/en/tutor/altair](https://preply.com)
-- **telegram** — [@altair_ru](https://t.me/)
-- **email** — [altair@example.com](mailto:altair@example.com)
+For any questions or to schedult a lesson drop me a line here anywhere.
 
-Lessons run over video call, 50 minutes, and I teach in English or Russian depending on where you are. Write in whichever language is easier for you.
+- whatsapp — + 7 707 411 94 27
+- telegram — [@askaltair](https://t.me/askaltair)
+- email — [altairph@gmail.com](mailto:altairph@gmail.com)
 
-[./book-trial-lesson](https://preply.com)
+*I am just starting with teaching, so for a short while I am tutoring for **free**.*
