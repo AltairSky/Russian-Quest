@@ -72,6 +72,7 @@
     --textglow: 0 0 7px rgba(255, 92, 51, 0.35);
     --inner: inset 0 0 110px rgba(0, 0, 0, 0.40);
   }
+  body[data-theme="paper"] .chips .chip-book { color: #FFF8F0; background-image: none; }
   body[data-theme="paper"] {
     --bg: #F4EFE4;
     --term: rgba(255, 253, 247, 0.5);
@@ -202,7 +203,8 @@
   .md em { color: var(--dim); font-style: italic; }
   .md .ru { color: var(--accent); }
   .md h2 {
-    margin-top: 2em; font-size: 15.5px; color: var(--bright);
+    margin-top: 2.1em; font-size: 1.24em; font-weight: 700;
+    line-height: 1.45; color: var(--bright);
   }
   .md h2::before { content: "## "; color: var(--dim); font-weight: 400; }
   .md ul { list-style: none; margin-top: 1em; }
@@ -232,10 +234,16 @@
   }
   .md .btn:hover { color: var(--bright); border-color: var(--bright); }
 
-  .post { margin-top: 2.4em; }
-  .post + .post { border-top: 1px dashed var(--hair); padding-top: 2.2em; }
-  .post .meta { color: var(--dim); font-size: 12.5px; }
-  .post h2 { margin-top: 0.2em; }
+  .post { margin-top: 2.6em; }
+  .post + .post { border-top: 1px dashed var(--hair); padding-top: 2.8em; margin-top: 3.2em; }
+  .post .meta { color: var(--dim); font-size: 12.5px; letter-spacing: 0.04em; }
+  .post h2 {
+    margin-top: 0.15em;
+    font-size: 1.5em;
+    line-height: 1.35;
+    padding-bottom: 0.35em;
+    border-bottom: 1px solid var(--hair);
+  }
   .post h2::before { content: "# "; }
 
   /* ---------- ASCII tailpiece ---------- */
@@ -336,16 +344,6 @@
     padding: 10px 16px 12px;
   }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 9px; }
-  .chip-book {
-    margin-left: auto;
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--bg);
-    font-weight: 700;
-    text-shadow: none;
-  }
-  .chip-book:hover { background: var(--bright); border-color: var(--bright); color: var(--bg); }
-  .chip-book.active { background: var(--bright); border-color: var(--bright); color: var(--bg); }
   .chip {
     font: inherit; font-size: 12.5px;
     background: none; border: 1px solid var(--hair); border-radius: 5px;
@@ -353,6 +351,43 @@
   }
   .chip:hover { color: var(--bright); border-color: var(--dim); }
   .chip.active { color: var(--accent); border-color: var(--accent); }
+
+  /* the one call-to-action: solid, warm, and quietly breathing */
+  .chips .chip-book {
+    margin-left: auto;
+    /* same 4px scanline rhythm as the CRT overlay, baked into the fill */
+    background-color: var(--red);
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.20) 3px, rgba(0,0,0,0.20) 4px
+    );
+    border: 1.5px solid var(--red);
+    color: var(--bg);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 5px 16px;
+    text-shadow: none;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 55%, transparent);
+    animation: bookpulse 3.4s ease-out infinite;
+    transition: transform 0.12s ease, background 0.12s ease;
+  }
+  .chips .chip-book:hover,
+  .chips .chip-book.active {
+    background-color: color-mix(in srgb, var(--red) 82%, #fff);
+    border-color: color-mix(in srgb, var(--red) 82%, #fff);
+    color: var(--bg);
+    transform: translateY(-1px);
+    animation: none;
+  }
+  @keyframes bookpulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 50%, transparent); }
+    55%  { box-shadow: 0 0 0 7px color-mix(in srgb, var(--red) 0%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 0%, transparent); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chips .chip-book { animation: none; }
+  }
   .inputrow { display: flex; align-items: center; gap: 8px; }
   .inputrow input {
     flex: 1;
@@ -420,7 +455,7 @@
       <button class="chip active" id="chip-main" onclick="run('main')">main</button>
       <button class="chip" id="chip-blog" onclick="run('blog')">blog</button>
       <button class="chip" id="chip-game" onclick="run('game')">game</button>
-      <button class="chip chip-book" id="chip-book" onclick="run('book')">book a lesson</button>
+      <button class="chip chip-book" id="chip-book" onclick="run('book')">▸ book a lesson</button>
     </div>
     <div class="inputrow">
       <span class="ps1">$</span>
@@ -431,7 +466,7 @@
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 18;
+const BUILD = 21;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
