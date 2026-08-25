@@ -120,17 +120,17 @@
   /* wide screens: terminal docks left, the stage takes the rest */
   .stage { display: none; }
   @media (min-width: 1200px) {
-    :root { --col: clamp(820px, 60vw, 1500px); --padr: 14px; }
-    .term {
-      flex: 0 0 calc(var(--col) + var(--pad) + var(--padr));
-      border-right: 1px solid var(--hair);
-    }
-    .screen {
-      max-width: calc(var(--col) + var(--pad) + var(--padr));
-      padding-right: var(--padr);
-    }
+    :root { --padr: 18px; }
+    /* the STAGE gets a bounded share; the terminal takes everything else and
+       the text fills the terminal completely — so no empty band can appear */
+    .term { flex: 1 1 auto; min-width: 0; border-right: 1px solid var(--hair); }
+    .screen { max-width: none; padding-right: var(--padr); }
     .bottombar { padding-right: var(--padr); }
-    .stage { display: block; flex: 1 1 auto; position: relative; z-index: 1; }
+    .stage {
+      display: block;
+      flex: 0 0 clamp(300px, 26vw, 560px);
+      position: relative; z-index: 1;
+    }
     .stage .sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; }
     .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   }
@@ -415,7 +415,7 @@
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 14;
+const BUILD = 15;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
