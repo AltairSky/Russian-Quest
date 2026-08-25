@@ -106,34 +106,9 @@
     display: flex;
     flex-direction: column;
   }
-  .mid { flex: 1 1 auto; display: flex; align-items: stretch; position: relative; z-index: 2; }
-  @media (min-width: 900px) {
-    body { font-size: 16.5px; }
-    :root { --pad: 40px; }
-    .screen { padding: 28px var(--pad) 44px; }
-    .chip { font-size: 14.5px; padding: 7px 18px; }
-    .themebtn { font-size: 13.5px; padding: 4px 12px; }
-    .inputrow input { font-size: 16px; }
-    .bottombar { padding: 12px 22px 14px; }
-  }
-
-  /* wide screens: terminal docks left, the stage takes the rest */
   .stage { display: none; }
-  @media (min-width: 1200px) {
-    :root { --padr: 18px; }
-    /* the STAGE gets a bounded share; the terminal takes everything else and
-       the text fills the terminal completely — so no empty band can appear */
-    .term { flex: 1 1 auto; min-width: 0; border-right: 1px solid var(--hair); }
-    .screen { max-width: none; padding-right: var(--padr); }
-    .bottombar { padding-right: var(--padr); }
-    .stage {
-      display: block;
-      flex: 0 0 clamp(300px, 26vw, 560px);
-      position: relative; z-index: 1;
-    }
-    .stage .sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; }
-    .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  }
+  .mid { flex: 1 1 auto; display: flex; align-items: stretch; position: relative; z-index: 2; }
+
 
   /* CRT scanlines — amber & green only */
   body::before {
@@ -375,6 +350,34 @@
     background: none; border: none; color: var(--bright);
   }
   .inputrow input::placeholder { color: var(--dim); opacity: 0.7; }
+
+  /* ================= responsive overrides (must come last) ================= */
+  @media (min-width: 900px) {
+    body { font-size: 16.5px; }
+    :root { --pad: 40px; }
+    .screen { padding: 28px var(--pad) 44px; }
+    .chip { font-size: 14.5px; padding: 7px 18px; }
+    .themebtn { font-size: 13.5px; padding: 4px 12px; }
+    .inputrow input { font-size: 16px; }
+    .bottombar { padding: 12px 22px 14px; }
+  }
+
+  /* wide screens: terminal docks left, the stage takes the rest */
+  @media (min-width: 1200px) {
+    :root { --padr: 18px; }
+    /* the STAGE gets a bounded share; the terminal takes everything else and
+       the text fills the terminal completely — so no empty band can appear */
+    .term { flex: 1 1 auto; min-width: 0; border-right: 1px solid var(--hair); }
+    .screen { max-width: none; padding-right: var(--padr); }
+    .bottombar { padding-right: var(--padr); }
+    .stage {
+      display: block;
+      flex: 0 0 clamp(300px, 26vw, 560px);
+      position: relative; z-index: 1;
+    }
+    .stage .sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; }
+    .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  }
 </style>
 </head>
 <body data-theme="ruby">
@@ -415,7 +418,7 @@
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 15;
+const BUILD = 16;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
