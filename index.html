@@ -364,12 +364,14 @@
 
   /* wide screens: terminal docks left, the stage takes the rest */
   @media (min-width: 1200px) {
-    :root { --padr: 18px; }
+    /* breathing room between the text and the animation — about a third of
+       the gap the old fixed-column layout produced */
+    :root { --padr: clamp(50px, 7vw, 150px); }
     /* the STAGE gets a bounded share; the terminal takes everything else and
        the text fills the terminal completely — so no empty band can appear */
     .term { flex: 1 1 auto; min-width: 0; border-right: 1px solid var(--hair); }
     .screen { max-width: none; padding-right: var(--padr); }
-    .bottombar { padding-right: var(--padr); }
+    .bottombar { padding-right: 22px; }
     .stage {
       display: block;
       flex: 0 0 clamp(300px, 26vw, 560px);
@@ -418,7 +420,7 @@
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 16;
+const BUILD = 17;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
