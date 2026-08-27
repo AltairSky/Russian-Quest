@@ -466,7 +466,7 @@
 
 <script>
 /* build number — bump on every deployed change; shown in the boot line and `status` */
-const BUILD = 21;
+const BUILD = 22;
 /* =====================================================================
    HOW TO EDIT (phone, GitHub web editor) — same routine as the resume:
 
@@ -509,6 +509,11 @@ const BUILD = 21;
      | в-     | in      |
      Header separator row is optional; cells support **bold**,
      \`русский\`, and [links](...). Wide tables scroll sideways on phones.
+
+   IMAGE PATHS: inside a post, a bare name like Lenin.png means posts/Lenin.png
+     (same as GitHub's own preview). A path starting with / is from the site
+     root, e.g. /images/photo.jpg. In main.md and book.md, paths are from the
+     site root either way.
 
    IMAGES & VIDEO (each on its own line, file uploaded to the repo or a URL)
      ![caption](photo.jpg)            → image
@@ -647,7 +652,14 @@ function inline(s) {
     })
     .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
 }
+let MEDIA_BASE = "";                 /* folder of the file being rendered */
+function resolveUrl(url) {
+  if (!MEDIA_BASE) return url;
+  if (/^[a-z]+:/i.test(url) || url.startsWith("//") || url.startsWith("/") || url.startsWith("#")) return url;
+  return MEDIA_BASE + url;
+}
 function media(alt, url) {
+  url = resolveUrl(url);
   const cap = alt ? `<div class="caption"># ${esc(alt)}</div>` : "";
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/);
   if (yt) return `<iframe src="https://www.youtube.com/embed/${yt[1]}" allowfullscreen loading="lazy" title="${esc(alt)}"></iframe>${cap}`;
@@ -688,13 +700,16 @@ function renderBlocks(lines) {
   flushAll();
   return html;
 }
-function renderPostList(posts) {
-  return posts.map(p => `
+function renderPostList(posts, base) {
+  MEDIA_BASE = base || "";
+  const html = posts.map(p => `
     <article class="post">
       ${p.date ? `<div class="meta">${p.date}</div>` : ""}
       <h2>${inline(p.title)}</h2>
       ${renderBlocks(p.lines)}
     </article>`).join("");
+  MEDIA_BASE = "";
+  return html;
 }
 function renderBlogSection(lines) {
   const posts = [];
@@ -871,7 +886,7 @@ async function showPage(page) {
   } else if (page === "book") {
     pageEl.innerHTML = renderBlocks(SECTIONS.book) + `<pre class="art" aria-hidden="true">${esc(ART.book)}</pre>`;
   } else if (page === "blog") {
-    const body = EXT_POSTS ? renderPostList(EXT_POSTS) : renderBlogSection(SECTIONS.blog);
+    const body = EXT_POSTS ? renderPostList(EXT_POSTS, "posts/") : renderBlogSection(SECTIONS.blog);
     pageEl.innerHTML = body + `<pre class="art" aria-hidden="true">${esc(ART.blog)}</pre>`;
   } else {
     pageEl.innerHTML = renderBlocks(SECTIONS.main) + `<pre class="art" aria-hidden="true">${esc(ART.main)}</pre>`;
